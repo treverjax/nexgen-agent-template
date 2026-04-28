@@ -1,3 +1,6 @@
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
+
 # NexGen Agent Template
 
 An open-source starter for building an AI Gateway-powered chat / RAG / image-generation Worker on Cloudflare. The bundled frontend demonstrates streaming chat with Cloudflare docs RAG (via Vectorize), image generation through Replicate (FLUX, Recraft, Ideogram, Nano Banana Pro) and video generation (Kling, Wan), all routed through Cloudflare AI Gateway.
