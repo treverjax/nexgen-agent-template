@@ -1,0 +1,26 @@
+{
+    "name": "nexgen-agent-template",
+    "version": "1.0.0",
+    "description": "Open-source template for an AI Gateway-powered chat/RAG/image-gen Worker on Cloudflare. Configure secrets, point at your bindings, and deploy.",
+    "license": "MIT",
+    "private": true,
+    "scripts": {
+        "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify",
+        "deploy": "npm run build:css && wrangler deploy",
+        "dev": "wrangler dev",
+        "start": "wrangler dev",
+        "test": "vitest"
+    },
+    "devDependencies": {
+        "@cloudflare/vitest-pool-workers": "^0.12.4",
+        "tailwindcss": "^3.4.19",
+        "vitest": "~3.2.0",
+        "wrangler": "^4.61.0"
+    },
+    "dependencies": {
+        "@cloudflare/ai": "^1.2.2",
+        "base64-js": "^1.5.1",
+        "mustache": "^4.2.0",
+        "openai": "^4.28.0"
+    }
+}

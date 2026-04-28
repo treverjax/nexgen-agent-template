@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NextGen Agents | Cloudflare</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAYFBMVEVHcEz2kC72jSv0gCD1iyn3mDP0gCD0fx70gCDzgB/zgB/0gSH1iijzgCD0gSD0gCD4nzj6q0D2lkX6rkb6rj/3nlP8v2z6sEP1jTb4rW78yo7916z7tlL+5cv7wXf7uWdfaIJjAAAAIHRSTlMABA8VIww+W3C0yNmE6v/2L1n/yKH9++n7/P78+v/KW6v7USoAAADCSURBVHgB1c9FAsMgEAXQaXCLu97/loW4biuP5WcMvu5lPWUewhiT2yoPU8Y5o9i7VhPKhVRKCk3ROUVUS+NbRtr00BG5LPBHgdThVkqwnaWFrZsYwba1MBNKGTMVOkpH4bIW1SoIpmgSJ0mqI/xyF/Cp45ZleV4kaRQCplq4juUqruqmbtsi1cC0nLJ4kmVV0zV13rZJAmK6oJwCq6q7KSwKUCYY7bo2LhtDeZH0fTIBdjUM0QS8M2LfDC7s6TP4L28gDBLLJAlXwQAAAABJRU5ErkJggg==">
+  
+  <!-- ========== TAILWIND CSS ========== -->
+  <link rel="stylesheet" href="/styles.css">
+  
+  <!-- ========== GOOGLE FONTS ========== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- ========== CUSTOM STYLES ========== -->
+  <style>
+    
+    html, body { 
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: #f9f9f9;
+    }
+    
+    /* --- STATE BASED TRANSITIONS --- */
+    #hero-section { opacity: 1; transform: translateY(0); transition: all 0.6s ease-out; }
+    #chat-section { opacity: 0; pointer-events: none; transition: opacity 0.6s ease-in; }
+    
+    #input-container { 
+        position: fixed; 
+        bottom: max(1rem, calc(env(safe-area-inset-bottom) + 1rem));
+        left: 50%; 
+        transform: translate(-50%, 0); 
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); 
+        width: 100%; max-width: 48rem; padding: 0 1rem;
+    }
+    
+    @media (min-width: 768px) {
+        #input-container { 
+            top: 65%; 
+            bottom: auto;
+            transform: translate(-50%, -50%);
+        }
+    }
+    
+    body[data-state="chat"] #hero-section { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+    body[data-state="chat"] #chat-section { opacity: 1; pointer-events: auto; }
+    body[data-state="chat"] #input-container { top: auto; bottom: max(1rem, calc(env(safe-area-inset-bottom) + 1rem)); transform: translate(-50%, 0); }
+    body[data-state="chat"] #chat-section { padding-bottom: 12rem !important; }
+    body[data-state="chat"] #suggestion-cards { display: none; }
+    body[data-state="chat"] #suggestion-pills { display: none !important; }
+    body[data-state="chat"] #pill-topics { display: none !important; }
+
+    .assistant-markdown { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 0.875rem; 
+        line-height: 1.6; 
+        color: #1f2937;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    @media (min-width: 768px) { .assistant-markdown { font-size: 0.9375rem; line-height: 1.7; } }
+    .assistant-markdown code { background: rgba(243, 128, 32, 0.1); padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.875em; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; }
+    .assistant-markdown .code-block { position: relative; margin: 0.75rem 0; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e5e7eb; }
+    .assistant-markdown .code-block-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    .assistant-markdown .code-block-lang { font-size: 0.75rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.025em; }
+    .assistant-markdown .code-block-copy { display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #6b7280; background: white; border: 1px solid #d1d5db; border-radius: 0.25rem; cursor: pointer; transition: all 0.15s; }
+    .assistant-markdown .code-block-copy:hover { background: #f9fafb; color: #374151; }
+    .assistant-markdown .code-block-copy.copied { color: #059669; border-color: #059669; }
+    .assistant-markdown .code-block pre { margin: 0; padding: 1rem; background: #1e293b; color: #e2e8f0; overflow-x: auto; font-size: 0.8125rem; line-height: 1.6; }
+    .assistant-markdown .code-block pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+    .assistant-markdown p { margin: 0.5rem 0; color: #374151; }
+    .assistant-markdown ul, .assistant-markdown ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+    .assistant-markdown li { margin: 0.25rem 0; color: #374151; }
+    .assistant-markdown h1, .assistant-markdown h2, .assistant-markdown h3 { margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600; color: #111827; }
+    .assistant-markdown strong { font-weight: 600; color: #111827; }
+    .assistant-markdown a { color: #2563eb; text-decoration: none; }
+    .assistant-markdown a:hover { text-decoration: underline; }
+
+    .typing-cursor::after { content: '▋'; animation: blink 1s step-start infinite; color: #F38020; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+
+<!-- ========== BODY / MAIN LAYOUT ========== -->
+<body class="h-full flex flex-col overflow-hidden relative text-gray-900" data-state="idle">
+
+  <header id="main-header" class="absolute top-0 left-0 right-0 p-3 md:p-6 z-30 transition-opacity duration-500 opacity-0 pointer-events-none flex justify-between items-center bg-white/80 backdrop-blur-sm border-b border-gray-100">
+    <div onclick="resetSession()" class="cursor-pointer group select-none">
+        <img src="/api/v1/assets/CF-Logo%201.png" alt="Cloudflare" class="h-6 md:h-8 transition-transform group-hover:scale-105">
+    </div>
+    <div class="text-xs md:text-sm font-medium">
+        <span class="text-gray-600 hidden md:inline">Powered by</span> <span class="text-[#F38020]">Cloudflare AI Gateway</span>
+    </div>
+  </header>
+
+  <main id="chat-section" class="flex-1 overflow-y-auto pt-20 md:pt-40 pb-8 px-4 md:px-8 relative z-10">
+    <div id="chat" class="max-w-3xl mx-auto space-y-8"></div>
+  </main>
+
+  <div id="hero-section" class="absolute inset-0 flex flex-col justify-center items-center z-10 pointer-events-none pb-32 md:pb-48">
+      <div class="text-center mb-6 md:mb-12 px-4 pointer-events-auto">
+          <h1 class="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 mb-4 md:mb-6 leading-tight">
+              Welcome to <span class="text-[#F38020]">NexGenAgents</span>
+          </h1>
+          <p class="text-gray-600 text-base md:text-xl max-w-2xl mx-auto leading-relaxed mb-3 md:mb-4">
+              Intelligent AI routing powered by Cloudflare AI Gateway—answering Cloudflare product questions, generating images & videos with Replicate, and creating technical architecture diagrams.
+          </p>
+          <p class="text-gray-500 text-xs md:text-sm max-w-2xl mx-auto leading-relaxed">
+              Experience unified AI infrastructure: route across 50,000+ models (OpenAI, Anthropic, Replicate FLUX & Kling, Workers AI), monitor costs and performance, and deploy globally on Cloudflare's edge network.
+          </p>
+      </div>
+  </div>
+
+  <div id="input-container" class="z-40 relative">
+      
+      <div class="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg shadow-sm p-2.5 w-full">
+        <!-- Line 1: Input field with tools, mic, dynamic route badge, and submit -->
+        <div class="flex items-center gap-2">
+          <!-- Tools Dropdown -->
+          <div class="relative flex-shrink-0">
+            <button id="tools-btn" onclick="toggleToolsDropdown()" class="flex items-center gap-2 px-3 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <span id="tools-label" class="text-sm">Tools</span>
+            </button>
+            <!-- Active tool indicator (hidden by default) -->
+            <div id="active-tool" class="hidden flex items-center gap-2 px-3 py-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-600">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <span id="active-tool-name" class="text-blue-600 text-sm font-medium"></span>
+              <span onclick="deselectTool(event)" class="ml-1 hover:bg-gray-100 rounded p-0.5 transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
+              </span>
+            </div>
+            <!-- Tools dropdown (opens upward) -->
+            <div id="tools-dropdown" class="hidden absolute left-0 bottom-full mb-2 bg-white rounded-lg shadow-md border border-gray-200 py-1 min-w-[200px] z-50">
+              <button onclick="selectTool('image')" class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm">
+                <span class="text-base">🎨</span>
+                <span class="font-medium text-gray-800">Create Image</span>
+              </button>
+              <button onclick="selectTool('video')" class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm">
+                <span class="text-base">🎬</span>
+                <span class="font-medium text-gray-800">Create Video</span>
+              </button>
+              <button onclick="selectTool('diagram')" class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm">
+                <span class="text-base">📊</span>
+                <span class="font-medium text-gray-800">Create Diagram</span>
+              </button>
+            </div>
+          </div>
+
+          <input id="q" type="text" 
+                 class="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400 text-base px-3 py-2 min-w-0" 
+                 placeholder="Ask about Cloudflare or create something..." autocomplete="off" 
+                 onfocus="handleInputFocus()"
+                 onkeydown="if(event.key==='Enter') handleRunClick()">
+          
+          <button id="mic-btn" class="p-2 text-gray-500 hover:bg-gray-100 rounded-md transition-colors relative flex-shrink-0">
+              <span id="mic-ping" class="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping hidden"></span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.509V22.5h-1.5v-3.741a6.751 6.751 0 0 1-6-6.509v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>
+          </button>
+          <button id="run-btn" onclick="handleRunClick()" class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+              </svg>
+          </button>
+        </div>
+        
+      </div>
+
+      <!-- Suggestion Pills (below input on desktop, need pointer-events-auto wrapper) -->
+      <div class="pointer-events-auto">
+          <div id="suggestion-pills" class="flex flex-wrap justify-center gap-2 mt-6 mb-4 transition-opacity duration-500 opacity-100">
+              <button onclick="togglePillTopics('learn')" class="bg-white px-4 py-2 rounded-md border border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all text-sm font-medium text-gray-700">
+                  Learn About...
+              </button>
+              <button onclick="togglePillTopics('image')" class="bg-white px-4 py-2 rounded-md border border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all text-sm font-medium text-gray-700">
+                  Create Image
+              </button>
+              <button onclick="togglePillTopics('video')" class="bg-white px-4 py-2 rounded-md border border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all text-sm font-medium text-gray-700">
+                  Create Video
+              </button>
+              <button onclick="togglePillTopics('diagram')" class="bg-white px-4 py-2 rounded-md border border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer transition-all text-sm font-medium text-gray-700">
+                  Create Diagram
+              </button>
+          </div>
+
+          <!-- Expandable Topics (absolute on desktop to prevent jumping, relative on mobile for visibility) -->
+          <div id="pill-topics" class="hidden mt-4 md:absolute md:left-0 md:right-0 md:mt-4 space-y-3 transition-all duration-300" style="z-index: 50;">
+          <!-- Learn About topics -->
+          <div id="learn-topics" class="hidden space-y-3">
+              <button onclick="triggerPrompt('Tell me about Cloudflare\'s AI Gateway and how it works')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Learn about Cloudflare's AI Gateway
+              </button>
+              <button onclick="triggerPrompt('Explain AI rate limiting and how to implement it')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Learn about AI Rate Limiting
+              </button>
+              <button onclick="triggerPrompt('How can I control AI costs with Cloudflare?')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Learn about AI cost control
+              </button>
+              <button onclick="triggerPrompt('What security controls does Cloudflare AI Gateway provide?')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Learn about AI Security controls
+              </button>
+          </div>
+          <!-- Image topics -->
+          <div id="image-topics" class="hidden space-y-3">
+              <button onclick="triggerImagePrompt('Create a stunning image of a waterfall in a lush forest', 'flux-pro')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Create a waterfall image using FLUX Pro
+              </button>
+              <button onclick="triggerImagePrompt('Design a modern tech startup logo with the text NexGen', 'ideogram')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Design a logo with text using Ideogram
+              </button>
+              <button onclick="triggerImagePrompt('Create a technical diagram showing cloud architecture', 'recraft-v3')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Create a diagram using Recraft V3
+              </button>
+              <button onclick="triggerImagePrompt('Generate a detailed infographic about cloud computing with accurate text labels', 'nano-banana-pro')" class="w-full text-left bg-white px-5 py-3.5 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Create infographic using Nano Banana Pro
+              </button>
+          </div>
+          <!-- Video topics -->
+          <div id="video-topics" class="hidden space-y-2">
+              <button onclick="triggerVideoPrompt('A bird flying over the ocean at sunset', 'kling-v2.5')" class="w-full text-left bg-white px-5 py-3 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Create a bird flyover video using Kling V2.5
+              </button>
+              <button onclick="triggerVideoPrompt('Close-up shot of an elderly sailor wearing a yellow raincoat, seated on the deck of a catamaran, slowly puffing on a pipe. His cat lies quietly beside him with eyes closed, enjoying the calm. The warm glow of the setting sun bathes the scene, with gentle waves lapping against the hull and a few seabirds circling slowly above. The camera slowly pushes in, capturing this peaceful and harmonious moment.', 'wan-video')" class="w-full text-left bg-white px-5 py-3 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Create an elderly sailor scene using Wan Video
+              </button>
+          </div>
+          <!-- Diagram topics -->
+          <div id="diagram-topics" class="hidden space-y-2">
+              <button onclick="triggerDiagramPrompt('Show me this demo\'s architecture')" class="w-full text-left bg-white px-5 py-3 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Show me this demo's architecture
+              </button>
+              <button onclick="triggerDiagramPrompt('Show me a diagram of Cloudflare Workers AI architecture')" class="w-full text-left bg-white px-5 py-3 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  Cloudflare Workers AI architecture
+              </button>
+              <button onclick="triggerDiagramPrompt('Create a diagram showing AI Gateway request flow')" class="w-full text-left bg-white px-5 py-3 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-sm transition-all text-sm text-gray-700">
+                  AI Gateway request flow
+              </button>
+          </div>
+      </div>
+  </div>
+
+      <!-- Model showcase cards (shown when image mode is selected) -->
+      <div id="model-showcase" class="hidden mt-6 transition-opacity duration-500">
+          <div class="text-xs text-gray-400 font-semibold uppercase mb-3">Featured Models</div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div onclick="selectModelCard('flux-schnell')" class="model-card bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group">
+                  <div class="h-24 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl">⚡</div>
+                  <div class="p-3">
+                      <div class="text-xs text-gray-400">black-forest-labs</div>
+                      <div class="font-semibold text-sm text-gray-800 group-hover:text-[#F38020]">FLUX Schnell</div>
+                      <div class="text-xs text-gray-500 mt-1">Fast, high-quality images</div>
+                  </div>
+              </div>
+              <div onclick="selectModelCard('recraft-v3')" class="model-card bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group">
+                  <div class="h-24 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white text-3xl">🎨</div>
+                  <div class="p-3">
+                      <div class="text-xs text-gray-400">recraft-ai</div>
+                      <div class="font-semibold text-sm text-gray-800 group-hover:text-[#F38020]">Recraft V3</div>
+                      <div class="text-xs text-gray-500 mt-1">Diagrams & illustrations</div>
+                  </div>
+              </div>
+              <div onclick="selectModelCard('ideogram')" class="model-card bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group">
+                  <div class="h-24 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl">🔤</div>
+                  <div class="p-3">
+                      <div class="text-xs text-gray-400">ideogram-ai</div>
+                      <div class="font-semibold text-sm text-gray-800 group-hover:text-[#F38020]">Ideogram</div>
+                      <div class="text-xs text-gray-500 mt-1">Text in images</div>
+                  </div>
+              </div>
+              <div onclick="selectModelCard('nano-banana-pro')" class="model-card bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group">
+                  <div class="h-24 bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-3xl">🍌</div>
+                  <div class="p-3">
+                      <div class="text-xs text-gray-400">google</div>
+                      <div class="font-semibold text-sm text-gray-800 group-hover:text-[#F38020]">Nano Banana Pro</div>
+                      <div class="text-xs text-gray-500 mt-1">Best text + reasoning</div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  </div>
+
+<!-- ========== JAVASCRIPT ========== -->
+  <script>
+    // ===== CONFIGURATION =====
+    // The bundled frontend authenticates with the Worker using a Bearer token.
+    // For production, put Cloudflare Access in front of this Worker (recommended)
+    // or replace this with a real login flow that issues short-lived tokens.
+    // For local/dev: set a key here that matches one entry in env.API_KEYS.
+    const API_URL = "/api";
+    const DEMO_KEY = "Bearer REPLACE_ME_WITH_AN_ENTRY_FROM_API_KEYS";
+    let abortController = null;
+    let isProcessing = false;
+    let currentMode = 'auto';
+    let currentProvider = 'qwen-reasoning';
+    let selectedImageModel = 'auto';
+    let conversationHistory = [];
+    
+    // ===== PROVIDER & MODEL SELECTION =====
+    function toggleProviderDropdown() {
+        const dropdown = document.getElementById('provider-dropdown');
+        dropdown.classList.toggle('hidden');
+        
+        if (!dropdown.classList.contains('hidden')) {
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!e.target.closest('#provider-btn') && !e.target.closest('#provider-dropdown')) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 0);
+        }
+    }
+    
+    function selectProvider(provider) {
+        currentProvider = provider;
+        const label = document.getElementById('provider-label');
+        const dropdown = document.getElementById('provider-dropdown');
+        
+        const providerNames = {
+            'qwen-reasoning': 'Qwen 3 (Reasoning)',
+            'qwen-fast': 'Qwen 2.5 (Fast)',
+            'llama-70b': 'Llama 3.3 70B',
+            'llama-405b': 'Llama 3.1 405B',
+            'mistral-large': 'Mistral Large'
+        };
+        
+        label.textContent = providerNames[provider] || 'Workers AI';
+        dropdown.classList.add('hidden');
+    }
+    
+    // Tools dropdown functions
+    function toggleToolsDropdown() {
+        const dropdown = document.getElementById('tools-dropdown');
+        dropdown.classList.toggle('hidden');
+    }
+    
+    function selectTool(tool) {
+        const toolsBtn = document.getElementById('tools-btn');
+        const activeTool = document.getElementById('active-tool');
+        const activeToolName = document.getElementById('active-tool-name');
+        const dropdown = document.getElementById('tools-dropdown');
+        
+        // Hide dropdown
+        dropdown.classList.add('hidden');
+        
+        // Hide "Tools" button, show gear icon + tool name
+        toolsBtn.classList.add('hidden');
+        activeTool.classList.remove('hidden');
+        
+        // Set tool name and mode
+        if (tool === 'image') {
+            activeToolName.textContent = 'Image';
+            setMode('image');
+        } else if (tool === 'video') {
+            activeToolName.textContent = 'Video';
+            setMode('video');
+        } else if (tool === 'diagram') {
+            activeToolName.textContent = 'Diagram';
+            setMode('diagram');
+        }
+    }
+    
+    function deselectTool(event) {
+        event.stopPropagation();
+        const toolsBtn = document.getElementById('tools-btn');
+        const activeTool = document.getElementById('active-tool');
+        
+        // Show "Tools" button, hide active tool indicator
+        toolsBtn.classList.remove('hidden');
+        activeTool.classList.add('hidden');
+        
+        // Reset mode
+        setMode('auto');
+    }
+    
+    // Pill topics functions
+    let currentPillTopic = null;
+    
+    function togglePillTopics(topic) {
+        const pillTopics = document.getElementById('pill-topics');
+        const learnTopics = document.getElementById('learn-topics');
+        const imageTopics = document.getElementById('image-topics');
+        const videoTopics = document.getElementById('video-topics');
+        const diagramTopics = document.getElementById('diagram-topics');
+        
+        // If clicking the same pill, close it
+        if (currentPillTopic === topic) {
+            pillTopics.classList.add('hidden');
+            learnTopics.classList.add('hidden');
+            imageTopics.classList.add('hidden');
+            videoTopics.classList.add('hidden');
+            diagramTopics.classList.add('hidden');
+            currentPillTopic = null;
+            return;
+        }
+        
+        // Hide all topics first
+        learnTopics.classList.add('hidden');
+        imageTopics.classList.add('hidden');
+        videoTopics.classList.add('hidden');
+        diagramTopics.classList.add('hidden');
+        
+        // Show the selected topic
+        pillTopics.classList.remove('hidden');
+        if (topic === 'learn') {
+            learnTopics.classList.remove('hidden');
+        } else if (topic === 'image') {
+            imageTopics.classList.remove('hidden');
+        } else if (topic === 'video') {
+            videoTopics.classList.remove('hidden');
+        } else if (topic === 'diagram') {
+            diagramTopics.classList.remove('hidden');
+        }
+        
+        currentPillTopic = topic;
+    }
+    
+    function handleInputFocus() {
+        // When user clicks in input, close pill topics
+        const pillTopics = document.getElementById('pill-topics');
+        const learnTopics = document.getElementById('learn-topics');
+        const imageTopics = document.getElementById('image-topics');
+        const videoTopics = document.getElementById('video-topics');
+        const diagramTopics = document.getElementById('diagram-topics');
+        
+        pillTopics.classList.add('hidden');
+        learnTopics.classList.add('hidden');
+        imageTopics.classList.add('hidden');
+        videoTopics.classList.add('hidden');
+        diagramTopics.classList.add('hidden');
+        currentPillTopic = null;
+    }
+    
+    function triggerPrompt(prompt) {
+        const input = document.getElementById('q');
+        input.value = prompt;
+        handleInputFocus();
+        handleRunClick();
+    }
+    
+    function triggerImagePrompt(prompt, model) {
+        selectTool('image');
+        selectedImageModel = model;
+        const input = document.getElementById('q');
+        input.value = prompt;
+        handleInputFocus();
+        handleRunClick();
+    }
+    
+    function triggerVideoPrompt(prompt, model) {
+        selectTool('video');
+        selectedImageModel = model; // Video uses same model selection
+        const input = document.getElementById('q');
+        input.value = prompt;
+        handleInputFocus();
+        handleRunClick();
+    }
+    
+    function triggerDiagramPrompt(prompt) {
+        selectTool('diagram');
+        const input = document.getElementById('q');
+        input.value = prompt;
+        handleInputFocus();
+        handleRunClick();
+    }
+    
+    function toggleModelDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('model-dropdown');
+        dropdown.classList.toggle('hidden');
+    }
+    
+    function selectModel(model, event) {
+        event.stopPropagation();
+        selectedImageModel = model;
+        document.getElementById('model-dropdown').classList.add('hidden');
+        updateModelChipDisplay();
+        document.getElementById('q').focus();
+    }
+    
+    function selectModelCard(model) {
+        selectedImageModel = model;
+        updateModelChipDisplay();
+        document.getElementById('q').focus();
+    }
+    
+    function updateModelChipDisplay() {
+        const modelNames = {
+            'auto': { emoji: '✨', name: 'Auto' },
+            'flux-schnell': { emoji: '⚡', name: 'FLUX' },
+            'recraft-v3': { emoji: '🎨', name: 'Recraft' },
+            'ideogram': { emoji: '🔤', name: 'Ideogram' },
+            'stable-diffusion': { emoji: '🖼️', name: 'SD XL' }
+        };
+        const model = modelNames[selectedImageModel] || modelNames['auto'];
+        const chip = document.querySelector('#mode-chip .text-base');
+        const label = document.querySelector('#mode-chip .text-sm');
+        if (chip) chip.textContent = model.emoji;
+        if (label) label.textContent = model.name === 'Auto' ? 'Image' : model.name;
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+        document.getElementById('model-dropdown')?.classList.add('hidden');
+    }); 
+
+    // ===== UTILITY FUNCTIONS =====
+    function escapeHtml(str) {
+        return String(str)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    // ===== MARKDOWN LITE RENDERER =====
+    function renderMarkdownLite(text) {
+        const parts = String(text ?? "").split('```');
+        const out = [];
+
+        for (let i = 0; i < parts.length; i++) {
+            const chunk = parts[i];
+            const isCode = i % 2 === 1;
+            if (isCode) {
+                const trimmed = chunk.replace(/^\n/, '');
+                const firstLineEnd = trimmed.indexOf('\n');
+                let lang = '';
+                let code = trimmed;
+                if (firstLineEnd !== -1) {
+                    lang = trimmed.slice(0, firstLineEnd).trim();
+                    code = trimmed.slice(firstLineEnd + 1);
+                }
+                out.push(`<pre><code${lang ? ` data-lang="${escapeHtml(lang)}"` : ''}>${escapeHtml(code)}</code></pre>`);
+                continue;
+            }
+
+            const lines = chunk.split('\n');
+            let inUl = false;
+            let inOl = false;
+            let para = [];
+
+            const flushPara = () => {
+                const t = para.join(' ').trim();
+                if (!t) return;
+                let html = escapeHtml(t);
+                html = html
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="underline decoration-orange-200 hover:decoration-orange-400">$1</a>');
+                out.push(`<p>${html}</p>`);
+                para = [];
+            };
+
+            const closeLists = () => {
+                if (inUl) { out.push('</ul>'); inUl = false; }
+                if (inOl) { out.push('</ol>'); inOl = false; }
+            };
+
+            for (const line of lines) {
+                const raw = line;
+                const trimmed = raw.trim();
+
+                const ulMatch = /^[-*]\s+(.+)$/.exec(trimmed);
+                const olMatch = /^(\d+)\.\s+(.+)$/.exec(trimmed);
+
+                if (!trimmed) {
+                    flushPara();
+                    closeLists();
+                    continue;
+                }
+
+                if (ulMatch) {
+                    flushPara();
+                    if (inOl) { out.push('</ol>'); inOl = false; }
+                    if (!inUl) { out.push('<ul>'); inUl = true; }
+                    out.push(`<li>${escapeHtml(ulMatch[1])}</li>`);
+                    continue;
+                }
+
+                if (olMatch) {
+                    flushPara();
+                    if (inUl) { out.push('</ul>'); inUl = false; }
+                    if (!inOl) { out.push('<ol>'); inOl = true; }
+                    out.push(`<li>${escapeHtml(olMatch[2])}</li>`);
+                    continue;
+                }
+
+                para.push(trimmed);
+            }
+
+            flushPara();
+            closeLists();
+        }
+
+        return out.join('');
+    }
+
+    // ===== MARKDOWN RENDERER =====
+    class StreamingMarkdownRenderer {
+        constructor(el) {
+            this.el = el;
+            this.raw = '';
+            this.pendingUpdate = null;
+        }
+
+        append(text) {
+            this.raw += text;
+            // Batch updates using requestAnimationFrame to prevent flickering
+            if (!this.pendingUpdate) {
+                this.pendingUpdate = requestAnimationFrame(() => {
+                    this.render(false); // Apply markdown formatting in real-time during streaming
+                    this.pendingUpdate = null;
+                });
+            }
+        }
+
+        render(isFinal) {
+            const text = this.raw;
+            const lines = text.split('\n');
+            const out = [];
+            let i = 0;
+            let inCode = false;
+            let codeLang = '';
+            let codeLines = [];
+            let inList = null;
+            let listItems = [];
+
+            while (i < lines.length) {
+                const line = lines[i];
+                const isLast = i === lines.length - 1;
+
+                if (line.trim().startsWith('```')) {
+                    if (inCode) {
+                        out.push(this.makeCodeBlock(codeLang, codeLines.join('\n')));
+                        inCode = false;
+                        codeLang = '';
+                        codeLines = [];
+                    } else {
+                        if (inList) { out.push(this.makeList(inList, listItems)); inList = null; listItems = []; }
+                        inCode = true;
+                        codeLang = line.trim().slice(3).trim() || 'code';
+                    }
+                    i++;
+                    continue;
+                }
+
+                if (inCode) {
+                    if (!isLast || isFinal) codeLines.push(line);
+                    i++;
+                    continue;
+                }
+
+                const ulMatch = /^[-*]\s+(.+)$/.exec(line.trim());
+                const olMatch = /^(\d+)\.\s+(.+)$/.exec(line.trim());
+
+                if (ulMatch) {
+                    if (inList === 'ol') { out.push(this.makeList('ol', listItems)); listItems = []; }
+                    inList = 'ul';
+                    listItems.push(ulMatch[1]);
+                    i++;
+                    continue;
+                }
+
+                if (olMatch) {
+                    if (inList === 'ul') { out.push(this.makeList('ul', listItems)); listItems = []; }
+                    inList = 'ol';
+                    listItems.push(olMatch[2]);
+                    i++;
+                    continue;
+                }
+
+                if (!line.trim()) {
+                    if (inList) { out.push(this.makeList(inList, listItems)); inList = null; listItems = []; }
+                    i++;
+                    continue;
+                }
+
+                if (inList) { out.push(this.makeList(inList, listItems)); inList = null; listItems = []; }
+
+                // Handle horizontal rules (---, ***, ___) - only exact matches
+                const trimmed = line.trim();
+                if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+                    i++;
+                    continue; // Skip horizontal rules - they add visual noise
+                }
+
+                // Handle headers (h1-h6)
+                const h6Match = /^######\s+(.+)$/.exec(line.trim());
+                const h5Match = /^#####\s+(.+)$/.exec(line.trim());
+                const h4Match = /^####\s+(.+)$/.exec(line.trim());
+                const h3Match = /^###\s+(.+)$/.exec(line.trim());
+                const h2Match = /^##\s+(.+)$/.exec(line.trim());
+                const h1Match = /^#\s+(.+)$/.exec(line.trim());
+                
+                if (h6Match) {
+                    out.push(`<h6 class="text-sm font-semibold mt-3 mb-1">${this.renderInline(h6Match[1])}</h6>`);
+                    i++;
+                    continue;
+                }
+                if (h5Match) {
+                    out.push(`<h5 class="text-base font-semibold mt-3 mb-2">${this.renderInline(h5Match[1])}</h5>`);
+                    i++;
+                    continue;
+                }
+                if (h4Match) {
+                    out.push(`<h4 class="text-base font-semibold mt-3 mb-2">${this.renderInline(h4Match[1])}</h4>`);
+                    i++;
+                    continue;
+                }
+                if (h3Match) {
+                    out.push(`<h3 class="text-lg font-semibold mt-4 mb-2">${this.renderInline(h3Match[1])}</h3>`);
+                    i++;
+                    continue;
+                }
+                if (h2Match) {
+                    out.push(`<h2 class="text-xl font-semibold mt-4 mb-2">${this.renderInline(h2Match[1])}</h2>`);
+                    i++;
+                    continue;
+                }
+                if (h1Match) {
+                    out.push(`<h1 class="text-2xl font-bold mt-4 mb-2">${this.renderInline(h1Match[1])}</h1>`);
+                    i++;
+                    continue;
+                }
+
+                // Check if line has leading whitespace (indented content)
+                const trimmedLine = line.trim();
+                const isIndented = line.startsWith('  ') || line.startsWith('\t');
+                
+                if (!isLast || isFinal) {
+                    if (isIndented) {
+                        out.push(`<p class="ml-4">${this.renderInline(trimmedLine)}</p>`);
+                    } else {
+                        out.push(`<p>${this.renderInline(trimmedLine)}</p>`);
+                    }
+                } else {
+                    if (isIndented) {
+                        out.push(`<p class="ml-4">${this.renderInline(trimmedLine)}</p>`);
+                    } else {
+                        out.push(`<p>${this.renderInline(trimmedLine)}</p>`);
+                    }
+                }
+                i++;
+            }
+
+            if (inList && listItems.length) out.push(this.makeList(inList, listItems));
+            if (inCode && isFinal && codeLines.length) out.push(this.makeCodeBlock(codeLang, codeLines.join('\n')));
+
+            this.el.innerHTML = out.join('');
+        }
+
+        renderInline(text) {
+            let html = escapeHtml(text);
+            return html
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (match, linkText, url) => {
+                    // Convert relative URLs to absolute Cloudflare docs URLs
+                    const href = url.startsWith('/') ? `https://developers.cloudflare.com${url}` : url;
+                    return `<a href="${href}" target="_blank" rel="noreferrer" class="underline decoration-orange-200 hover:decoration-orange-400">${linkText}</a>`;
+                });
+        }
+
+        makeList(type, items) {
+            const tag = type === 'ul' ? 'ul' : 'ol';
+            return `<${tag}>${items.map(it => `<li>${this.renderInline(it)}</li>`).join('')}</${tag}>`;
+        }
+
+        makeCodeBlock(lang, code) {
+            const id = 'code-' + Math.random().toString(36).substr(2, 9);
+            return `<div class="code-block"><div class="code-block-header"><span class="code-block-lang">${escapeHtml(lang)}</span><button class="code-block-copy" onclick="copyCode('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg><span>Copy</span></button></div><pre id="${id}"><code>${escapeHtml(code.replace(/\n$/, ''))}</code></pre></div>`;
+        }
+
+        finalize() {
+            // Cancel any pending update and render final markdown
+            if (this.pendingUpdate) {
+                cancelAnimationFrame(this.pendingUpdate);
+                this.pendingUpdate = null;
+            }
+            this.render(true);
+        }
+    }
+
+    // ===== CODE COPY FUNCTIONALITY =====
+    function copyCode(id) {
+        const pre = document.getElementById(id);
+        if (!pre) return;
+        const code = pre.textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = pre.parentElement.querySelector('.code-block-copy');
+            btn.classList.add('copied');
+            btn.querySelector('span').textContent = 'Copied!';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.querySelector('span').textContent = 'Copy';
+            }, 2000);
+        });
+    }
+
+    function updateChatBottomPadding() {
+        const inputContainer = document.getElementById('input-container');
+        if (!inputContainer) return;
+        const rect = inputContainer.getBoundingClientRect();
+        const extra = 32;
+        const pad = Math.ceil(rect.height + extra);
+        document.documentElement.style.setProperty('--chat-bottom-pad', `${pad}px`);
+    }
+
+    // Throttle resize handlers to prevent flickering
+    let resizeTimeout = null;
+    function throttledUpdatePadding() {
+        if (resizeTimeout) return;
+        resizeTimeout = requestAnimationFrame(() => {
+            updateChatBottomPadding();
+            resizeTimeout = null;
+        });
+    }
+
+    const inputResizeObserver = new ResizeObserver(() => throttledUpdatePadding());
+    window.addEventListener('resize', () => throttledUpdatePadding(), { passive: true });
+    window.addEventListener('load', () => {
+        const inputContainer = document.getElementById('input-container');
+        if (inputContainer) inputResizeObserver.observe(inputContainer);
+        updateChatBottomPadding();
+    });
+
+    // ===== UI STATE MANAGEMENT =====
+    function setChatState() {
+        document.body.setAttribute('data-state', 'chat');
+        const header = document.getElementById('main-header');
+        header.classList.remove('opacity-0', 'pointer-events-none');
+        header.classList.add('opacity-100', 'pointer-events-auto');
+        updateChatBottomPadding();
+    }
+
+    // ===== RESPONSE ACTION FUNCTIONS =====
+    function copyResponse(msgId) {
+        const msgEl = document.getElementById(msgId);
+        if (!msgEl) return;
+        
+        const text = msgEl.innerText || msgEl.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            // Show temporary feedback
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /></svg><span>Copied!</span>';
+            setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
+    
+    function shareResponse(msgId) {
+        const msgEl = document.getElementById(msgId);
+        if (!msgEl) return;
+        
+        const text = msgEl.innerText || msgEl.textContent;
+        const shareData = {
+            title: 'AI Gateway Response',
+            text: text.substring(0, 500) + (text.length > 500 ? '...' : '')
+        };
+        
+        if (navigator.share) {
+            navigator.share(shareData).catch(err => console.log('Share cancelled'));
+        } else {
+            // Fallback: copy link to clipboard
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+    }
+    
+    function regenerateResponse() {
+        // Get the last user message from conversation history
+        const lastUserMsg = conversationHistory.filter(m => m.role === 'user').pop();
+        if (!lastUserMsg) return;
+        
+        // Set the input and trigger run
+        document.getElementById('q').value = lastUserMsg.content;
+        handleRunClick();
+    }
+    
+    function toggleFeedback(msgId, type) {
+        const btn = event.target.closest('button');
+        const isActive = btn.classList.contains('text-green-600') || btn.classList.contains('text-red-600');
+        
+        // Reset both buttons
+        const parent = btn.parentElement;
+        parent.querySelectorAll('button').forEach(b => {
+            b.classList.remove('text-green-600', 'text-red-600');
+            b.classList.add('text-gray-400');
+        });
+        
+        // Toggle current button
+        if (!isActive) {
+            btn.classList.remove('text-gray-400');
+            btn.classList.add(type === 'up' ? 'text-green-600' : 'text-red-600');
+            
+            // Log feedback (could send to analytics endpoint)
+            console.log(`Feedback for ${msgId}: ${type}`);
+        }
+    }
+    
+    function generateRelatedQuestions(responseText) {
+        // Simple keyword-based related question generation
+        const questions = [];
+        
+        if (responseText.toLowerCase().includes('ai gateway')) {
+            questions.push('How do I set up AI Gateway?');
+            questions.push('What are the pricing options?');
+            questions.push('Show me an example implementation');
+        }
+        
+        if (responseText.toLowerCase().includes('dynamic routing')) {
+            questions.push('How does dynamic routing work?');
+            questions.push('Can I customize routing rules?');
+        }
+        
+        if (responseText.toLowerCase().includes('rate limiting')) {
+            questions.push('How do I configure rate limits?');
+            questions.push('What happens when limits are exceeded?');
+        }
+        
+        if (responseText.toLowerCase().includes('cost') || responseText.toLowerCase().includes('pricing')) {
+            questions.push('Compare pricing across providers');
+            questions.push('How can I reduce AI costs?');
+        }
+        
+        if (responseText.toLowerCase().includes('security')) {
+            questions.push('What security features are available?');
+            questions.push('How is data privacy ensured?');
+        }
+        
+        // Return up to 4 questions
+        return questions.slice(0, 4);
+    }
+    
+    function askRelatedQuestion(question) {
+        const input = document.getElementById('q');
+        if (!input) {
+            console.error('Input element not found');
+            return;
+        }
+        input.value = question;
+        input.focus(); // Ensure input is focused on mobile
+        handleRunClick();
+    }
+
+    function resetSession() {
+        if (isProcessing) stopGeneration();
+        
+        // Clear chat and input
+        document.getElementById('chat').innerHTML = "";
+        document.getElementById('q').value = "";
+        document.getElementById('q').placeholder = "Ask about Cloudflare or create something...";
+        
+        // Reset mode and conversation history
+        currentMode = 'auto';
+        conversationHistory = [];
+        
+        // Reset tools UI - call deselectTool to properly reset
+        const toolsBtn = document.getElementById('tools-btn');
+        const activeTool = document.getElementById('active-tool');
+        if (toolsBtn) toolsBtn.classList.remove('hidden');
+        if (activeTool) activeTool.classList.add('hidden');
+        
+        // Hide model showcase
+        const modelShowcase = document.getElementById('model-showcase');
+        if (modelShowcase) modelShowcase.classList.add('hidden');
+        
+        // Hide pill topics
+        const pillTopics = document.getElementById('pill-topics');
+        const learnTopics = document.getElementById('learn-topics');
+        const imageTopics = document.getElementById('image-topics');
+        const videoTopics = document.getElementById('video-topics');
+        const diagramTopics = document.getElementById('diagram-topics');
+        if (pillTopics) pillTopics.classList.add('hidden');
+        if (learnTopics) learnTopics.classList.add('hidden');
+        if (imageTopics) imageTopics.classList.add('hidden');
+        if (videoTopics) videoTopics.classList.add('hidden');
+        if (diagramTopics) diagramTopics.classList.add('hidden');
+        currentPillTopic = null;
+        
+        // Reset UI state
+        resetUIState();
+        
+        // IMPORTANT: Set state to idle FIRST, then force a reflow
+        document.body.setAttribute('data-state', 'idle');
+        
+        // Force browser reflow to ensure CSS transitions apply
+        void document.body.offsetHeight;
+        
+        // Get elements
+        const header = document.getElementById('main-header');
+        const heroSection = document.getElementById('hero-section');
+        const chatSection = document.getElementById('chat-section');
+        const suggestionPills = document.getElementById('suggestion-pills');
+        
+        // Reset header
+        if (header) {
+            header.classList.add('opacity-0', 'pointer-events-none');
+            header.classList.remove('opacity-100', 'pointer-events-auto');
+        }
+        
+        // Clear any inline styles that might interfere and restore hero visibility
+        if (heroSection) {
+            heroSection.style.cssText = '';
+            heroSection.classList.remove('opacity-0', 'pointer-events-none');
+            heroSection.classList.add('opacity-100', 'pointer-events-auto');
+        }
+        if (chatSection) {
+            chatSection.style.cssText = '';
+        }
+        
+        // Show suggestion pills
+        if (suggestionPills) {
+            suggestionPills.classList.remove('hidden');
+        }
+    }
+
+    function setMode(mode, event) {
+        if(event) event.stopPropagation();
+        currentMode = mode;
+        const input = document.getElementById('q');
+        const suggestionCards = document.getElementById('suggestion-cards');
+
+        if (mode === 'image') {
+            input.placeholder = "Describe the image you want to create...";
+            input.focus();
+            if (suggestionCards) suggestionCards.classList.add('hidden');
+        } else if (mode === 'video') {
+            input.placeholder = "Describe the video you want to create...";
+            input.focus();
+            if (suggestionCards) suggestionCards.classList.add('hidden');
+        } else if (mode === 'diagram') {
+            input.placeholder = "Describe the diagram or architecture you need...";
+            input.focus();
+            if (suggestionCards) suggestionCards.classList.add('hidden');
+        } else {
+            input.placeholder = "Ask about Cloudflare or create something...";
+            input.focus();
+            if (suggestionCards) suggestionCards.classList.remove('hidden');
+            updateTaskButtonStates(null);
+        }
+    }
+
+    function triggerSuggestion(type) {
+        if (type === 'gateway') {
+            document.getElementById('q').value = 'Tell me about AI Gateway features like rate limiting, prompt caching, usage tracking, and cost analytics';
+            handleRunClick();
+            return;
+        }
+        setChatState();
+        const input = document.getElementById('q');
+        
+        if (type === 'diagram') {
+            setMode('image');
+            input.value = "Technical architecture diagram of Cloudflare AI Gateway";
+            setTimeout(handleRunClick, 150);
+        } else if (type === 'image') {
+            setMode('image');
+            input.value = ""; // Clear for user input
+            input.placeholder = "Describe the image you want to create...";
+            input.focus();
+        } else if (type === 'failover') {
+            setMode('auto');
+            input.value = "How does Cloudflare AI Gateway handle provider failover?";
+            setTimeout(handleRunClick, 150);
+        }
+    }
+
+    function handleRunClick() {
+        if (document.body.getAttribute('data-state') !== 'chat') setChatState();
+        // Hide model showcase after first submission
+        const showcase = document.getElementById('model-showcase');
+        if (showcase) showcase.classList.add('hidden');
+        if (isProcessing) stopGeneration();
+        else ask();
+    }
+
+    function stopGeneration() {
+        if (abortController) { abortController.abort(); abortController = null; }
+        resetUIState();
+        const chat = document.getElementById('chat');
+        if(chat.lastElementChild && chat.lastElementChild.querySelector('.content-body')) {
+            chat.lastElementChild.querySelector('.content-body').innerHTML += " <span class='text-red-500 text-xs'>[STOPPED]</span>";
+        }
+    }
+
+    function setProcessingState(processing) {
+        isProcessing = processing;
+        const input = document.getElementById('q');
+        if (processing) {
+            input.disabled = true;
+        } else { resetUIState(); }
+    }
+
+    function resetUIState() {
+        isProcessing = false;
+        const btn = document.getElementById('run-btn');
+        const input = document.getElementById('q');
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+              </svg>`;
+        input.disabled = false; input.focus();
+        // Updated Placeholder logic
+        input.placeholder = currentMode === 'image' ? "Describe your image" : "Ask about Cloudflare or create something...";
+    }
+
+    // ===== MAIN CHAT FUNCTION =====
+    async function ask() {
+        const input = document.getElementById('q');
+        const chat = document.getElementById('chat');
+        const container = document.getElementById('chat-section');
+        let query = input.value;
+        if(!query) return;
+
+        abortController = new AbortController();
+        const signal = abortController.signal;
+
+        chat.innerHTML += `<div class="flex justify-end animate-fade-in-up"><div class="bg-white border border-gray-200 text-gray-900 px-4 py-3 rounded-lg max-w-[80%] text-sm md:text-base leading-relaxed">${escapeHtml(query)}</div></div>`;
+        container.scrollTop = container.scrollHeight;
+        input.value = ""; setProcessingState(true);
+        
+        conversationHistory.push({ role: 'user', content: query });
+
+        try {
+            const streamParam = currentMode === 'image' || currentMode === 'video' ? '' : '&stream=true';
+            const modelParam = (currentMode === 'image' || currentMode === 'video') && selectedImageModel !== 'auto' ? `&model=${selectedImageModel}` : '';
+            const providerParam = currentMode !== 'image' && currentMode !== 'video' ? `&provider=${currentProvider}` : '';
+            
+            // Show thinking indicator for all requests (backend may detect diagrams from auto mode)
+            let thinkingMsgId = "thinking-" + Date.now();
+            let videoStartTime = null;
+            if (currentMode === 'video') {
+                videoStartTime = Date.now();
+            }
+            // Detect if query might trigger image/diagram generation
+            const mightBeImage = /show\s+me|example|implementation|diagram|image|generate|create|draw|visualize/i.test(query);
+            const thinkingText = (currentMode === 'image' || currentMode === 'video' || currentMode === 'diagram' || mightBeImage) 
+                ? 'Generating...' : 'Thinking...';
+            chat.innerHTML += `
+                <div id="${thinkingMsgId}" class="flex justify-start animate-fade-in-up w-full">
+                    <div class="flex items-center gap-1 px-2 py-0.5 text-blue-600 text-xs font-medium">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        ${thinkingText}
+                    </div>
+                </div>`;
+            container.scrollTop = container.scrollHeight;
+            
+            const res = await fetch(`${API_URL}/chat?mode=${currentMode}${streamParam}${modelParam}${providerParam}`, {
+                method: 'POST',
+                headers: { "Authorization": DEMO_KEY, "Content-Type": "application/json" },
+                body: JSON.stringify({ query, history: conversationHistory.slice(-10) }),
+                signal
+            });
+            
+            // Remove thinking indicator when response arrives
+            const thinkingEl = document.getElementById(thinkingMsgId);
+            if (thinkingEl) thinkingEl.remove();
+            
+            const contentType = res.headers.get("content-type");
+
+            if (contentType && contentType.includes("text/event-stream")) {
+                const botMsgId = "msg-" + Date.now();
+                const labelId = "label-" + Date.now();
+                const vectorizeBadgeId = "vectorize-badge-" + Date.now();
+                const thinkingSpinnerId = "thinking-spinner-" + Date.now();
+                chat.innerHTML += `
+                    <div class="flex justify-start animate-fade-in-up w-full">
+                        <div class="flex flex-col w-full max-w-3xl">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span id="${labelId}" class="text-xs font-bold text-[#F38020] uppercase tracking-wider">AI Gateway</span>
+                                <span id="${vectorizeBadgeId}" class="hidden items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                                    </svg>
+                                    Docs Enhanced
+                                </span>
+                                <span id="${thinkingSpinnerId}" class="hidden items-center gap-1 px-2 py-0.5 text-blue-600 text-xs font-medium">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Thinking...
+                                </span>
+                            </div>
+                            <div id="${botMsgId}" class="assistant-markdown text-gray-800 text-sm md:text-base leading-normal md:leading-relaxed min-h-[20px]"></div>
+                        </div>
+                    </div>`;
+                
+                const msgEl = document.getElementById(botMsgId);
+                const labelEl = document.getElementById(labelId);
+                const renderer = new StreamingMarkdownRenderer(msgEl);
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                
+                // Capture Gateway metadata from headers
+                const gatewayMeta = {
+                    traceId: res.headers.get('X-CF-AIG-Trace-ID') || res.headers.get('x-cf-aig-trace-id'),
+                    cacheStatus: res.headers.get('X-CF-Cache-Status') || res.headers.get('x-cf-cache-status'),
+                    cfRay: res.headers.get('X-CF-Ray') || res.headers.get('x-cf-ray') || res.headers.get('cf-ray'),
+                    vectorizeUsed: res.headers.get('X-Vectorize-Used') === 'true',
+                };
+                
+                // Track the actual model name and reasoning content
+                let actualModelName = '';
+                let reasoningContent = '';
+                let hasReasoning = false;
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            const payload = line.replace(/^data:\s*/, "").trim();
+                            if (!payload || payload === "[DONE]") continue;
+                            try {
+                                const json = JSON.parse(payload);
+                                if (json?.model) {
+                                    actualModelName = json.model;
+                                    if (labelEl.textContent === 'AI GATEWAY') {
+                                        const modelName = json.model.replace('@cf/', '').replace('/', ' / ');
+                                        labelEl.textContent = `AI GATEWAY → ${modelName}`;
+                                    }
+                                }
+                                
+                                // Handle reasoning models (e.g., Qwen3-a3b)
+                                const reasoning = json?.choices?.[0]?.delta?.reasoning_content;
+                                if (reasoning) {
+                                    // Show thinking spinner during reasoning phase
+                                    if (!hasReasoning) {
+                                        const spinner = document.getElementById(thinkingSpinnerId);
+                                        if (spinner) {
+                                            spinner.classList.remove('hidden');
+                                            spinner.classList.add('flex');
+                                        }
+                                    }
+                                    hasReasoning = true;
+                                    reasoningContent += reasoning;
+                                }
+                                
+                                // Handle regular content
+                                const content = json?.choices?.[0]?.delta?.content;
+                                if (content) { 
+                                    // Hide thinking spinner when content starts
+                                    const spinner = document.getElementById(thinkingSpinnerId);
+                                    if (spinner) {
+                                        spinner.classList.add('hidden');
+                                        spinner.classList.remove('flex');
+                                    }
+                                    renderer.append(content); 
+                                    container.scrollTop = container.scrollHeight; 
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                }
+                // Typing cursor class already removed from initial render
+                renderer.finalize();
+                conversationHistory.push({ role: 'assistant', content: renderer.raw });
+                
+                // Show Vectorize badge if documentation context was used
+                if (gatewayMeta.vectorizeUsed) {
+                    const vectorizeBadge = document.getElementById(vectorizeBadgeId);
+                    if (vectorizeBadge) {
+                        vectorizeBadge.classList.remove('hidden');
+                        vectorizeBadge.classList.add('flex');
+                    }
+                }
+                
+                // Add response action bar
+                const actionsId = 'actions-' + botMsgId;
+                msgEl.parentElement.insertAdjacentHTML('beforeend', `
+                    <div class="mt-3 flex items-center gap-3 text-xs">
+                        <button onclick="copyResponse('${botMsgId}')" class="flex items-center gap-1.5 text-gray-500 hover:text-[#F38020] transition-colors" title="Copy response">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                                <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.12A1.5 1.5 0 0 1 17 6.622V12.5a1.5 1.5 0 0 1-1.5 1.5h-1v-3.379a3 3 0 0 0-.879-2.121L10.5 5.379A3 3 0 0 0 8.379 4.5H7v-1Z" />
+                                <path d="M4.5 6A1.5 1.5 0 0 0 3 7.5v9A1.5 1.5 0 0 0 4.5 18h7a1.5 1.5 0 0 0 1.5-1.5v-5.879a1.5 1.5 0 0 0-.44-1.06L9.44 6.439A1.5 1.5 0 0 0 8.378 6H4.5Z" />
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        <button onclick="shareResponse('${botMsgId}')" class="flex items-center gap-1.5 text-gray-500 hover:text-[#F38020] transition-colors" title="Share response">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                                <path d="M13 4.5a2.5 2.5 0 1 1 .702 1.737L6.97 9.604a2.518 2.518 0 0 1 0 .792l6.733 3.367a2.5 2.5 0 1 1-.671 1.341l-6.733-3.367a2.5 2.5 0 1 1 0-3.475l6.733-3.366A2.52 2.52 0 0 1 13 4.5Z" />
+                            </svg>
+                            <span>Share</span>
+                        </button>
+                        <button onclick="regenerateResponse()" class="flex items-center gap-1.5 text-gray-500 hover:text-[#F38020] transition-colors" title="Regenerate response">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                                <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
+                            </svg>
+                            <span>Regenerate</span>
+                        </button>
+                        <div class="flex-1"></div>
+                        <button onclick="toggleFeedback('${botMsgId}', 'up')" class="text-gray-400 hover:text-green-600 transition-colors" title="Good response">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                                <path d="M1 8.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5ZM11 3V1.7c0-.268.14-.526.395-.607A2 2 0 0 1 14 3c0 .995-.182 1.948-.514 2.826-.204.54.166 1.174.744 1.174h2.52c1.243 0 2.261 1.01 2.146 2.247a23.864 23.864 0 0 1-1.341 5.974C17.153 16.323 16.072 17 14.9 17h-3.192a3 3 0 0 1-1.341-.317l-2.734-1.366A3 3 0 0 0 6.292 15H5V8h.963c.685 0 1.258-.483 1.612-1.068a4.011 4.011 0 0 1 2.166-1.73c.432-.143.853-.386 1.011-.814.16-.432.248-.9.248-1.388Z" />
+                            </svg>
+                        </button>
+                        <button onclick="toggleFeedback('${botMsgId}', 'down')" class="text-gray-400 hover:text-red-600 transition-colors" title="Poor response">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                                <path d="M18.905 12.75a1.25 1.25 0 1 1-2.5 0v-7.5a1.25 1.25 0 0 1 2.5 0v7.5ZM8.905 17v1.3c0 .268-.14.526-.395.607A2 2 0 0 1 5.905 17c0-.995.182-1.948.514-2.826.204-.54-.166-1.174-.744-1.174h-2.52c-1.243 0-2.261-1.01-2.146-2.247.193-2.08.651-4.082 1.341-5.974C2.752 3.678 3.833 3 5.005 3h3.192a3 3 0 0 1 1.341.317l2.734 1.366A3 3 0 0 0 13.613 5h1.292v7h-.963c-.685 0-1.258.482-1.612 1.068a4.01 4.01 0 0 1-2.166 1.73c-.432.143-.853.386-1.011.814-.16.432-.248.9-.248 1.388Z" />
+                            </svg>
+                        </button>
+                    </div>
+                `);
+                
+                // Add Gateway analytics panel showing request metadata
+                const analyticsId = 'analytics-' + botMsgId;
+                const hasAnyMeta = gatewayMeta.traceId || gatewayMeta.cacheStatus || gatewayMeta.cfRay;
+                const displayModel = actualModelName ? actualModelName.replace('@cf/', '') : 'qwen/qwen3-30b-a3b-fp8';
+                const routeName = 'dynamic/support-agent';
+                msgEl.parentElement.insertAdjacentHTML('beforeend', `
+                    <div class="mt-2">
+                        <button onclick="document.getElementById('${analyticsId}').classList.toggle('hidden')" class="text-xs text-gray-500 hover:text-[#F38020] font-medium flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>
+                            Gateway Analytics
+                        </button>
+                        <div id="${analyticsId}" class="hidden mt-2 bg-gray-50 rounded-lg p-3 text-xs space-y-2">
+                            <div><span class="text-gray-500 font-semibold">Route:</span> <span class="text-gray-700 font-mono text-xs">${routeName}</span></div>
+                            <div><span class="text-gray-500 font-semibold">Model:</span> <span class="text-gray-700 font-mono text-xs">${displayModel}</span></div>
+                            <div><span class="text-gray-500 font-semibold">Provider:</span> <span class="text-gray-700 font-mono text-xs">Workers AI</span></div>
+                            ${gatewayMeta.vectorizeUsed ? `<div><span class="text-gray-500 font-semibold">Vectorize:</span> <span class="text-blue-700 font-mono text-xs">✓ Documentation context retrieved</span></div>` : ''}
+                            ${gatewayMeta.cfRay ? `<div><span class="text-gray-500 font-semibold">CF-Ray:</span> <span class="text-gray-700 font-mono text-xs">${gatewayMeta.cfRay}</span></div>` : ''}
+                            ${gatewayMeta.traceId ? `<div><span class="text-gray-500 font-semibold">Trace ID:</span> <span class="text-gray-700 font-mono text-xs">${gatewayMeta.traceId}</span></div>` : ''}
+                            ${gatewayMeta.cacheStatus ? `<div><span class="text-gray-500 font-semibold">Cache:</span> <span class="text-gray-700 font-mono text-xs">${gatewayMeta.cacheStatus}</span></div>` : ''}
+                            <div class="pt-2 border-t border-gray-200 text-gray-500 text-xs">
+                                <strong>Routed via AI Gateway:</strong> This request was processed through Cloudflare AI Gateway with dynamic routing to Workers AI${gatewayMeta.vectorizeUsed ? ', enhanced with semantic search from Vectorize documentation index' : ''}. View detailed analytics including usage, costs, and performance metrics in the <a href="https://dash.cloudflare.com" target="_blank" class="text-[#F38020] hover:underline">Cloudflare Dashboard</a>.
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                // Add related questions section
+                const relatedQuestionsId = 'related-' + botMsgId;
+                const relatedQuestions = generateRelatedQuestions(renderer.raw);
+                if (relatedQuestions.length > 0) {
+                    msgEl.parentElement.insertAdjacentHTML('beforeend', `
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Related Questions</div>
+                            <div class="flex flex-wrap gap-2">
+                                ${relatedQuestions.map((q, idx) => `
+                                    <button onclick="askRelatedQuestion('${q.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')"
+                                            class="text-xs bg-white border border-gray-200 hover:border-[#F38020] text-gray-700 px-3 py-2 rounded-lg transition-all touch-manipulation">
+                                        ${q}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `);
+                }
+
+            } else {
+                const data = await res.json();
+                
+                if (data.type === 'tool_result' && (data.tool === 'generate_image' || data.tool === 'generate_video' || data.tool === 'generate_diagram')) {
+                    const mediaId = "media-" + Date.now();
+                    const isVideo = data.tool === 'generate_video' || data.is_video;
+                    const isSvgDiagram = data.is_svg === true;
+                    
+                    // Calculate generation time for videos
+                    let generationTimeText = '';
+                    if (isVideo && videoStartTime) {
+                        const durationMs = Date.now() - videoStartTime;
+                        const seconds = Math.floor(durationMs / 1000);
+                        const minutes = Math.floor(seconds / 60);
+                        const remainingSeconds = seconds % 60;
+                        if (minutes > 0) {
+                            generationTimeText = `<div class="text-xs text-gray-500 mb-3 px-1">Generated in ${minutes} minute${minutes > 1 ? 's' : ''} ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}</div>`;
+                        } else {
+                            generationTimeText = `<div class="text-xs text-gray-500 mb-3 px-1">Generated in ${seconds} second${seconds !== 1 ? 's' : ''}</div>`;
+                        }
+                    }
+                    
+                    // Map model names to display labels
+                    const modelLabels = {
+                        'flux-schnell': 'FLUX Schnell',
+                        'recraft-v3': 'Recraft V3',
+                        'recraft-v3-svg': 'Recraft V3 SVG',
+                        'nano-banana-pro': 'Nano Banana Pro',
+                        'ideogram': 'Ideogram',
+                        'stable-diffusion': 'Stable Diffusion XL',
+                        'kling-v2.5': 'Kling V2.5 Turbo Pro',
+                        'wan-video': 'Wan Video 2.2 Fast'
+                    };
+                    const modelUsed = data.model_used || (isVideo ? 'kling-v2.5' : 'flux-schnell');
+                    const modelName = isSvgDiagram ? 'SVG Diagram' : (modelLabels[modelUsed] || (isVideo ? 'Kling V2.5 Turbo Pro' : 'FLUX Schnell'));
+                    let label = isSvgDiagram ? 'Architecture Diagram' : `Replicate (${modelName})`;
+                    if (data.is_diagram && !isSvgDiagram) label = `Architecture (${modelName})`;
+
+                    let mediaElement;
+                    if (isSvgDiagram) {
+                        // SVG diagram - clickable for fullscreen, full-width display
+                        mediaElement = `<img src="${data.content}" class="w-full block cursor-pointer" style="min-height: 500px;" onclick="openDiagramFullscreen('${data.content}')" title="Click to view fullscreen" onload="document.getElementById('chat-section').scrollTop = document.getElementById('chat-section').scrollHeight">`;
+                    } else if (isVideo) {
+                        mediaElement = `<video src="${data.content}" class="rounded-lg w-full mb-3 shadow-sm bg-white" controls autoplay loop onloadeddata="document.getElementById('chat-section').scrollTop = document.getElementById('chat-section').scrollHeight"></video>`;
+                    } else {
+                        // Regular images - clickable for fullscreen
+                        mediaElement = `<img src="${data.content}" class="rounded-lg w-full mb-3 shadow-sm bg-white cursor-pointer" onclick="openDiagramFullscreen('${data.content}')" title="Click to view fullscreen" onload="document.getElementById('chat-section').scrollTop = document.getElementById('chat-section').scrollHeight">`;
+                    }
+
+                    const downloadButton = isVideo 
+                        ? `<a href="${data.content}" target="_blank" download class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs md:text-xs px-4 py-2.5 md:py-2 rounded-lg transition-colors font-medium">Download</a>`
+                        : '';
+                    
+                    // Create analytics section for video/image/diagram
+                    const analyticsId = "analytics-" + Date.now();
+                    const mediaAnalytics = isSvgDiagram ? '' : `
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <button onclick="document.getElementById('${analyticsId}').classList.toggle('hidden')" class="text-xs text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>
+                                Gateway Analytics
+                            </button>
+                            <div id="${analyticsId}" class="hidden mt-2 bg-gray-50 rounded-lg p-3 text-xs space-y-2">
+                                <div><span class="text-gray-500 font-semibold">Route:</span> <span class="text-gray-700 font-mono text-xs">/chat?mode=${isVideo ? 'video' : 'image'}</span></div>
+                                <div><span class="text-gray-500 font-semibold">Model:</span> <span class="text-gray-700 font-mono text-xs">${modelName}</span></div>
+                                <div><span class="text-gray-500 font-semibold">Provider:</span> <span class="text-gray-700 font-mono text-xs">Replicate</span></div>
+                                ${isVideo && videoStartTime ? `<div><span class="text-gray-500 font-semibold">Generation Time:</span> <span class="text-gray-700 font-mono text-xs">${Math.floor((Date.now() - videoStartTime) / 1000)}s</span></div>` : ''}
+                                <div class="pt-2 border-t border-gray-200 text-gray-500 text-xs">
+                                    <strong>Routed via AI Gateway:</strong> This ${isVideo ? 'video' : 'image'} was generated through Cloudflare AI Gateway with routing to Replicate. View detailed analytics including usage, costs, and performance metrics in the <a href="https://dash.cloudflare.com" target="_blank" class="text-[#F38020] hover:underline">Cloudflare Dashboard</a>.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Use full width for SVG diagrams and images
+                    const containerClass = (isSvgDiagram || !isVideo) ? 'w-full max-w-2xl' : 'w-full max-w-md';
+                    
+                    chat.innerHTML += `
+                        <div id="${mediaId}" class="flex justify-start animate-fade-in-up w-full">
+                             <div class="flex flex-col ${containerClass}">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-xs md:text-xs font-bold text-[#F38020] uppercase tracking-wider break-words">${label}</span>
+                                </div>
+                                <div class="${isSvgDiagram ? 'rounded-xl overflow-hidden shadow-soft' : 'bg-white p-3 md:p-2 rounded-xl border border-gray-200 shadow-soft'}">
+                                    ${mediaElement}
+                                    ${generationTimeText}
+                                    <div class="flex gap-2 items-center px-0 md:px-1 footer-actions flex-wrap ${isSvgDiagram ? 'bg-white p-3 border-t border-gray-200' : ''}" data-media-id="${mediaId}" data-content="${data.content}" data-prompt="${query.replace(/'/g, '&#39;').replace(/"/g, '&quot;')}">
+                                        <button onclick="saveToVault(this.parentElement.dataset.mediaId, this.parentElement.dataset.content, this.parentElement.dataset.prompt)" class="bg-gray-800 hover:bg-[#F38020] text-white text-xs md:text-xs px-4 py-2.5 md:py-2 rounded-lg transition-colors font-medium flex-1 md:flex-none">Save to R2</button>
+                                        ${downloadButton}
+                                    </div>
+                                    ${mediaAnalytics}
+                                </div>
+                             </div>
+                        </div>`;
+                } else {
+                     const text = data.response ?? data.content ?? "";
+                     const html = renderMarkdownLite(text || JSON.stringify(data));
+                     chat.innerHTML += `<div class="flex justify-start animate-fade-in-up w-full"><div class="assistant-markdown text-gray-800 text-sm md:text-base leading-normal md:leading-relaxed">${html}</div></div>`;
+                     conversationHistory.push({ role: 'assistant', content: text });
+                }
+                container.scrollTop = container.scrollHeight;
+            }
+        } catch(e) { if (e.name !== 'AbortError') chat.innerHTML += `<div class="text-red-500 text-sm mt-2">Error: ${e.message}</div>`; }
+        finally { setProcessingState(false); }
+    }
+
+    // ===== DIAGRAM FULLSCREEN FUNCTIONALITY =====
+    function openDiagramFullscreen(src) {
+        const overlay = document.createElement('div');
+        overlay.id = 'diagram-fullscreen';
+        overlay.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer';
+        overlay.innerHTML = `
+            <img src="${src}" class="max-w-full max-h-full object-contain" style="max-height: 95vh;">
+            <button class="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/70 rounded-full p-2" onclick="event.stopPropagation(); document.getElementById('diagram-fullscreen').remove();">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">Click anywhere or press ESC to close</div>
+        `;
+        overlay.onclick = () => overlay.remove();
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', function escHandler(e) {
+            if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); }
+        });
+    }
+
+    // ===== IMAGE SAVE FUNCTIONALITY =====
+    async function saveToVault(blockId, url, prompt) {
+        const block = document.getElementById(blockId);
+        const btn = block.querySelector('button');
+        btn.innerHTML = "Saving..."; btn.disabled = true;
+        try {
+            // For SVG diagrams, we need to handle differently - fetch the SVG and upload
+            const isSvg = url.endsWith('.svg');
+            // Ensure URL is absolute for fetching
+            const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+            let res;
+            if (isSvg) {
+                // Fetch SVG content and upload as file
+                const svgRes = await fetch(fullUrl);
+                if (!svgRes.ok) throw new Error(`Failed to fetch SVG: ${svgRes.status}`);
+                const svgText = await svgRes.text();
+                res = await fetch(`${API_URL}/v1/save-image`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ svgContent: svgText, prompt: prompt, isSvg: true }) 
+                });
+            } else {
+                res = await fetch(`${API_URL}/v1/save-image`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageUrl: fullUrl, prompt: prompt }) 
+                });
+            }
+            const data = await res.json();
+            if (data.asset_url) {
+                block.querySelector('.footer-actions').innerHTML = `<div class="flex items-center gap-3 w-full bg-green-50 px-3 py-2 rounded-lg border border-green-100"><span class="text-xs text-green-700 font-medium flex-1">✓ Saved to R2</span><a href="${data.asset_url}" target="_blank" class="text-green-700 hover:text-green-900 text-xs font-bold underline decoration-green-300">OPEN ASSET ↗</a></div>`;
+            } else {
+                throw new Error(data.error || 'Save failed');
+            }
+        } catch(e) { 
+            console.error('Save error:', e);
+            btn.innerHTML = "Retry"; 
+            btn.disabled = false; 
+        }
+    }
+
+    // ===== VOICE INPUT FUNCTIONALITY =====
+    const micBtn = document.getElementById('mic-btn');
+    const inputField = document.getElementById('q');
+    let mediaRecorder = null; let audioChunks = []; let isRecording = false;
+
+    micBtn.addEventListener('click', async () => {
+        if (document.body.getAttribute('data-state') !== 'chat') setChatState();
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    try {
+                        stream.getTracks().forEach(t => t.stop());
+                        micBtn.classList.remove('text-red-500'); 
+                        document.getElementById('mic-ping').classList.add('hidden');
+                        inputField.placeholder = "Transcribing...";
+                        
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        console.log('Audio blob size:', blob.size);
+                        
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        
+                        reader.onloadend = async () => {
+                            try {
+                                const b64 = reader.result.split(',')[1];
+                                console.log('Base64 length:', b64.length);
+                                
+                                const res = await fetch(`${API_URL}/v1/transcribe`, { 
+                                    method: 'POST', 
+                                    headers: { "Content-Type": "application/json" }, 
+                                    body: JSON.stringify({ audio: b64, type: 'audio/webm' }) 
+                                });
+                                
+                                console.log('Transcription response status:', res.status);
+                                const data = await res.json();
+                                console.log('Transcription data:', data);
+                                
+                                if (data.text && data.text.trim()) { 
+                                    inputField.value = data.text; 
+                                    inputField.placeholder = "Ask about Cloudflare or create something...";
+                                    setTimeout(handleRunClick, 500); 
+                                } else {
+                                    inputField.placeholder = "Ask about Cloudflare or create something...";
+                                    console.error('No transcription text received:', data);
+                                    alert('No speech detected. Please try again.');
+                                }
+                            } catch (err) {
+                                inputField.placeholder = "Ask about Cloudflare or create something...";
+                                console.error('Transcription error:', err);
+                                alert('Transcription failed: ' + err.message);
+                            }
+                        };
+                        
+                        reader.onerror = (err) => {
+                            inputField.placeholder = "Ask about Cloudflare or create something...";
+                            console.error('FileReader error:', err);
+                            alert('Failed to read audio data');
+                        };
+                    } catch (err) {
+                        inputField.placeholder = "Ask about Cloudflare or create something...";
+                        console.error('MediaRecorder stop error:', err);
+                        alert('Recording stop failed: ' + err.message);
+                    }
+                };
+                mediaRecorder.start(); isRecording = true;
+                micBtn.classList.add('text-red-500'); document.getElementById('mic-ping').classList.remove('hidden');
+                inputField.placeholder = "Listening...";
+            } catch(e) { alert("Mic Error"); }
+        } else { mediaRecorder.stop(); isRecording = false; }
+    });
+  </script>
+</body>
+</html>

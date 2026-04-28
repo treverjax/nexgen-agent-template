@@ -1,0 +1,9 @@
+The file is too corrupted to restore via edit. I need to rebuild the structure properly.
+
+The issue: Lines 135-217 have malformed HTML where:
+1. Pills container starts at 135
+2. Input box markup appears at 157 (should be in input-container)
+3. Duplicate input-container at 217
+4. Topics are orphaned
+
+I'll create a clean version with proper structure.

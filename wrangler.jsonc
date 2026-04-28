@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexgen-agent",
+  "main": "src/index.js",
+  "compatibility_date": "2026-01-28",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  // Replace with your own domain. Remove this block to deploy on workers.dev only.
+  "routes": [
+    { "pattern": "<YOUR_DOMAIN>/*", "zone_name": "<YOUR_DOMAIN>" }
+  ],
+  "ai": { "binding": "AI" },
+
+  "r2_buckets": [
+    {
+      "binding": "ASSETS_BUCKET",
+      "bucket_name": "<YOUR_R2_BUCKET_NAME>"
+    }
+  ],
+
+  "vectorize": [
+    { "binding": "VECTORIZE_INDEX", "index_name": "<YOUR_VECTORIZE_INDEX_NAME>" }
+  ],
+  "vars": {
+    // Public Cloudflare account ID (visible in your dashboard URL).
+    "CLOUDFLARE_ACCOUNT_ID": "<YOUR_CLOUDFLARE_ACCOUNT_ID>",
+    // Name you gave your AI Gateway in the Cloudflare dashboard.
+    "AI_GATEWAY_ID": "<YOUR_AI_GATEWAY_ID>",
+    // Allowed CORS origin (use your production domain). Use "*" only for local dev.
+    "ALLOWED_ORIGIN": "<YOUR_DOMAIN>"
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}
